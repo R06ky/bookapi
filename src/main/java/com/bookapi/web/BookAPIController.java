@@ -3,8 +3,6 @@ package bookapi.web;
 import bookapi.Application;
 import bookapi.domain.Book;
 import bookapi.service.APIFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;

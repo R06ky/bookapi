@@ -104,7 +104,7 @@ public class Book {
                         break;
                     }
                 } catch (Exception e) {
-                    Application.logger.warn(e.getMessage());
+                    Application.logger.error("Combine error", e);
                 }
             }
         }

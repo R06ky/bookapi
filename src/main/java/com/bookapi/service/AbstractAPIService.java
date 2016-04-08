@@ -5,10 +5,13 @@ import bookapi.domain.Book;
 import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.Map;
 
 /**
@@ -56,20 +59,55 @@ public abstract class AbstractAPIService {
                     .timeout(3000)
                     .post();
         } catch (IOException e) {
-            Application.logger.error("Jsoup cannot access-->" + url, e.getCause());
+            Application.logger.error("Jsoup cannot access-->" + url, e);
         }
         return doc;
     }
 
-    public String elements2String(Elements elements) {
-        if (elements == null) {
+    public String getJsoupHTML(String url) {
+        if (StringUtils.isEmpty(url)) {
+            return null;
+        }
+        String json = null;
+        try {
+            json = Jsoup.connect(url).ignoreContentType(true).execute().body();
+        } catch (Exception e) {
+            Application.logger.error(url, e);
+        }
+
+        return json;
+    }
+
+
+    public String getJsonString(String sUrl) {
+        if (sUrl == null) {
             return StringUtils.EMPTY;
-        } else {
-            StringBuilder stringBuilder = new StringBuilder();
-            for(Element element : elements) {
-                stringBuilder.append(element.text()).append("\n");
+        }
+
+        HttpURLConnection connection;
+        BufferedReader reader;
+        try {
+            URL url = new URL(sUrl);
+            connection = (HttpURLConnection) url.openConnection();
+            connection.connect();
+            if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                return StringUtils.EMPTY;
             }
-            return stringBuilder.toString();
+            reader = new BufferedReader(new InputStreamReader(
+                    connection.getInputStream(), Charset.forName("UTF-8")));
+
+            StringBuilder html = new StringBuilder();
+            String lines = reader.readLine();
+            while (lines!= null) {
+                html.append(lines);
+                lines = reader.readLine();
+            }
+            reader.close();
+
+            return html.toString();
+        } catch (Exception e) {
+            Application.logger.error("URL --> " + sUrl, e);
+            return StringUtils.EMPTY;
         }
     }
 

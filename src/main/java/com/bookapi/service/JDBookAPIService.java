@@ -3,6 +3,7 @@ package bookapi.service;
 import bookapi.Application;
 import bookapi.domain.Book;
 import org.apache.commons.lang3.StringUtils;
+import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -19,6 +20,7 @@ public class JDBookAPIService extends AbstractAPIService implements BookAPIServi
 
     final static String SEARCH_BY_TITLE = "http://search.jd.com/bookadvsearch?keyword=%s&enc=utf-8";
     final static String SEARCH_BY_ISBN = "http://search.jd.com/bookadvsearch?isbn=%s";
+    final static String JD_DESC_URL = "http://d.3.cn/desc/%s";
 
     public JDBookAPIService(Map<String, String> requestParams) {
         super(requestParams);
@@ -114,16 +116,27 @@ public class JDBookAPIService extends AbstractAPIService implements BookAPIServi
         }
         book.setAuthor(authorList);
         book.setTranslator(translatorList);
-
-        Element contentsEle = doc.getElementById("J-detail-content");
-        if (contentsEle != null) {
-            Element authorIntroEle = contentsEle.attr("text","作者简介");
-            book.setAuthorIntro(elements2String(authorIntroEle.children()));
-            Element summaryEle = contentsEle.attr("text","内容简介");
-            book.setSummary(elements2String(summaryEle.children()));
-            Element catalogEle = contentsEle.attr("text","目录");
-            book.setCatalog(elements2String(catalogEle.children()));
+        String jdDesc = getJDDesc();
+        if (!StringUtils.isEmpty(jdDesc)) {
+            Document jdDescDoc = Jsoup.parse(jdDesc);
+            Iterator<Element> iterator = jdDescDoc.select("h3").iterator();
+            while (iterator.hasNext()) {
+                Element element = iterator.next();
+                if (StringUtils.equalsIgnoreCase("作者简介", element.text())) {
+                    book.setAuthorIntro(element.parent().parent().getElementsByClass("book-detail-content").html());
+                    continue;
+                }
+                if (StringUtils.equalsIgnoreCase("内容简介", element.text())) {
+                    book.setSummary(element.parent().parent().getElementsByClass("book-detail-content").html());
+                    continue;
+                }
+                if (StringUtils.equalsIgnoreCase("目录", element.text())) {
+                    book.setCatalog(element.parent().parent().getElementsByClass("book-detail-content").html());
+                    continue;
+                }
+            }
         }
+
 
         Elements as = doc.getElementsByClass("breadcrumb").select("a");
         StringBuilder categroy = new StringBuilder();
@@ -138,12 +151,41 @@ public class JDBookAPIService extends AbstractAPIService implements BookAPIServi
         return book;
     }
 
+    private String getJDDesc() {
+        String desc = null;
+        String jdID = getJDID();
+        if (StringUtils.isEmpty(jdID)) {
+            return desc;
+        }
+        String descUrl = String.format(JD_DESC_URL,jdID);
+        try {
+            String html = getJsoupHTML(descUrl);
+            if(!StringUtils.isEmpty(html)) {
+                String jsonString = StringUtils.substring(html, StringUtils.indexOf(html, "(") + 1, StringUtils.lastIndexOf(html, ")"));
+                JSONObject jsonObject = new JSONObject(jsonString);
+                desc = jsonObject.getString("content");
+            }
+        } catch (Exception e) {
+            Application.logger.error(descUrl, e);
+        }
+        return desc;
+    }
+
+    private String getJDID() {
+        if (StringUtils.isEmpty(getUrl())) {
+            return StringUtils.EMPTY;
+        }
+        String url = getUrl();
+        String jdID = StringUtils.substring(url, StringUtils.lastIndexOf(url,"/")+1, StringUtils.lastIndexOf(url, "."));
+        return jdID;
+    }
+
     @Override
     public boolean validated() {
-        boolean validtion = getBook() != null && super.validated() && getBook().getImages() != null;
-        if (!validtion) {
+        boolean validation = getBook() != null && super.validated() && getBook().getImages() != null;
+        if (!validation) {
             Application.logger.warn("JD cannot get the book, URL --> " + getUrl());
         }
-        return validtion;
+        return validation;
     }
 }

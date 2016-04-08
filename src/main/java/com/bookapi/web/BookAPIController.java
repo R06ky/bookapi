@@ -26,7 +26,7 @@ public class BookAPIController {
 
     @ExceptionHandler(value = Exception.class)
     public Book handleAnyException (Exception ex){
-        Application.logger.error(ex.getMessage());
+        Application.logger.error("Controller", ex);
         return Book.DEFAULT_BOOK;
     }
 

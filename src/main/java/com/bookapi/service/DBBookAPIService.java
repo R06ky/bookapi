@@ -66,37 +66,6 @@ public class DBBookAPIService extends AbstractAPIService implements BookAPIServi
         return getUrl();
     }
 
-    public String getJsonString(String sUrl) {
-        if (sUrl == null) {
-            return StringUtils.EMPTY;
-        }
-
-        HttpURLConnection connection;
-        BufferedReader reader;
-        try {
-            URL url = new URL(sUrl);
-            connection = (HttpURLConnection) url.openConnection();
-            connection.connect();
-            if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-                return StringUtils.EMPTY;
-            }
-            reader = new BufferedReader(new InputStreamReader(
-                    connection.getInputStream(), Charset.forName("UTF-8")));
-
-            StringBuilder html = new StringBuilder();
-            String lines = reader.readLine();
-            while (lines!= null) {
-                html.append(lines);
-                lines = reader.readLine();
-            }
-            reader.close();
-
-            return html.toString();
-        } catch (Exception e) {
-            Application.logger.error("URL --> " + sUrl + "\n" + e.getMessage());
-            return StringUtils.EMPTY;
-        }
-    }
 
     public boolean validated () {
         return getBook() != null && super.validated() && getBook().isDBBook();
@@ -117,7 +86,7 @@ public class DBBookAPIService extends AbstractAPIService implements BookAPIServi
                 return jsonArray.getJSONObject(0).getString("id");
             }
         } catch (Exception e) {
-            Application.logger.error("URL --> " + sUrl + "\n JSON->" + json);
+            Application.logger.error("URL --> " + sUrl + "\n JSON->" + json, e);
         }
 
         return StringUtils.EMPTY;

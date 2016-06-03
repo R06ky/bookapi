@@ -21,6 +21,7 @@ public abstract class AbstractAPIService {
     private Book book;
     private String url;
     private Map<String, String> requestParams;
+    static int DEFAULT_TIME_OUT = 3000;
 
     public AbstractAPIService(Map<String, String> requestParams) {
         this.requestParams = requestParams;
@@ -56,7 +57,7 @@ public abstract class AbstractAPIService {
                     .data("query", "Java")
                     .userAgent("Mozilla")
                     .cookie("auth", "token")
-                    .timeout(3000)
+                    .timeout(DEFAULT_TIME_OUT)
                     .post();
         } catch (IOException e) {
             Application.logger.error("Jsoup cannot access-->" + url, e);
@@ -64,13 +65,13 @@ public abstract class AbstractAPIService {
         return doc;
     }
 
-    public String getJsoupHTML(String url) {
+    public String getJsoupHTML(String url, int timeout) {
         if (StringUtils.isEmpty(url)) {
             return null;
         }
         String json = null;
         try {
-            json = Jsoup.connect(url).ignoreContentType(true).execute().body();
+            json = Jsoup.connect(url).timeout(timeout).ignoreContentType(true).execute().body();
         } catch (Exception e) {
             Application.logger.error(url, e);
         }

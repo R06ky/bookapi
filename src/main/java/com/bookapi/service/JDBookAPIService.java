@@ -1,6 +1,7 @@
 package bookapi.service;
 
 import bookapi.Application;
+import bookapi.Config;
 import bookapi.domain.Book;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
@@ -8,6 +9,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -16,14 +18,17 @@ import java.util.Map;
 /**
  * Created by rockyren on 4/1/16.
  */
+@Service
 public class JDBookAPIService extends AbstractAPIService implements BookAPIService {
 
     final static String SEARCH_BY_TITLE = "http://search.jd.com/bookadvsearch?keyword=%s&enc=utf-8";
     final static String SEARCH_BY_ISBN = "http://search.jd.com/bookadvsearch?isbn=%s";
     final static String JD_DESC_URL = "http://d.3.cn/desc/%s";
+    Config config;
 
-    public JDBookAPIService(Map<String, String> requestParams) {
+    public JDBookAPIService(Map<String, String> requestParams, Config config) {
         super(requestParams);
+        this.config = config;
     }
 
     private void setUrl() {
@@ -50,7 +55,14 @@ public class JDBookAPIService extends AbstractAPIService implements BookAPIServi
         if (JDGoodsList == null) {
             return StringUtils.EMPTY;
         }
+
         Element bookUrl = JDGoodsList.select("a").first();
+        for (Element element : JDGoodsList.select("li")) {
+            if (element.outerHtml().contains("京东自营")) {
+                bookUrl = element.select("a").first();
+                break;
+            }
+        }
         if (bookUrl == null) {
             return StringUtils.EMPTY;
         }
@@ -99,9 +111,16 @@ public class JDBookAPIService extends AbstractAPIService implements BookAPIServi
 
         Element imageEles = doc.getElementById("preview");
         if (imageEles != null) {
-
             for (Element imageEle : imageEles.select("img")) {
-                images.add(imageEle == null ? StringUtils.EMPTY : "http:" + imageEle.attr("src"));
+                String image = imageEle == null ? StringUtils.EMPTY : "http:" + imageEle.attr("src");
+                String[] imagePre = image.split("jfs");
+                if (config != null
+                        && !StringUtils.isEmpty(config.getJdimgprefixfrom())
+                        &&  (imagePre.length > 0 && imagePre[0].contains(config.getJdimgprefixfrom()))
+                        && !StringUtils.isEmpty(config.getJdimgprefixto())) {
+                    image = StringUtils.replaceOnce(image, config.getJdimgprefixfrom(),config.getJdimgprefixto());
+                }
+                images.add(image);
             }
         }
         book.setImages(images);
@@ -122,16 +141,21 @@ public class JDBookAPIService extends AbstractAPIService implements BookAPIServi
             Iterator<Element> iterator = jdDescDoc.select("h3").iterator();
             while (iterator.hasNext()) {
                 Element element = iterator.next();
+                String str = element.parent().parent().getElementsByClass("book-detail-content").html();
+                if (config != null && !StringUtils.isEmpty(config.getJdemptydesc())
+                        && StringUtils.containsIgnoreCase(config.getJdemptydesc(), str)) {
+                    continue;
+                }
                 if (StringUtils.equalsIgnoreCase("作者简介", element.text())) {
-                    book.setAuthorIntro(element.parent().parent().getElementsByClass("book-detail-content").html());
+                    book.setAuthorIntro(str);
                     continue;
                 }
                 if (StringUtils.equalsIgnoreCase("内容简介", element.text())) {
-                    book.setSummary(element.parent().parent().getElementsByClass("book-detail-content").html());
+                    book.setSummary(str);
                     continue;
                 }
                 if (StringUtils.equalsIgnoreCase("目录", element.text())) {
-                    book.setCatalog(element.parent().parent().getElementsByClass("book-detail-content").html());
+                    book.setCatalog(str);
                     continue;
                 }
             }
@@ -159,7 +183,7 @@ public class JDBookAPIService extends AbstractAPIService implements BookAPIServi
         }
         String descUrl = String.format(JD_DESC_URL,jdID);
         try {
-            String html = getJsoupHTML(descUrl);
+            String html = getJsoupHTML(descUrl, config != null && config.getJddestimeout() > 0 ? config.getJddestimeout() : AbstractAPIService.DEFAULT_TIME_OUT);
             if(!StringUtils.isEmpty(html)) {
                 String jsonString = StringUtils.substring(html, StringUtils.indexOf(html, "(") + 1, StringUtils.lastIndexOf(html, ")"));
                 JSONObject jsonObject = new JSONObject(jsonString);

@@ -1,5 +1,6 @@
 package bookapi.service;
 
+import bookapi.Config;
 import bookapi.domain.Book;
 
 import java.util.ArrayList;
@@ -30,11 +31,11 @@ public class APIFactory {
     /*
      * dangdang.com->jd.com->douban.com
      */
-    public static List<BookAPIService> regAPIServices(Map<String,String> requestParams) {
+    public static List<BookAPIService> regAPIServices(Map<String,String> requestParams, Config config) {
         List<BookAPIService> apiServices = new ArrayList<>();
         if (requestParams.get("target") == null) {
+            apiServices.add(new JDBookAPIService(requestParams, config));
             apiServices.add(new DDBookAPIService(requestParams));
-            apiServices.add(new JDBookAPIService(requestParams));
             apiServices.add(new DBBookAPIService(requestParams));
         } else {
             switch (requestParams.get("target")) {
@@ -45,7 +46,7 @@ public class APIFactory {
                     apiServices.add(new DBBookAPIService(requestParams));
                     break;
                 case "jd" :
-                    apiServices.add(new JDBookAPIService(requestParams));
+                    apiServices.add(new JDBookAPIService(requestParams, config));
                     break;
                 default:
                     apiServices.add(new DBBookAPIService(requestParams));
@@ -54,8 +55,8 @@ public class APIFactory {
         return apiServices;
     }
 
-    public static BookAPIService getService(Map<String,String> requestParams) {
-        return getServiceHelper(regAPIServices(requestParams));
+    public static BookAPIService getService(Map<String,String> requestParams, Config config) {
+        return getServiceHelper(regAPIServices(requestParams, config));
     }
 
     public static BookAPIService getServiceHelper (List<BookAPIService> apiServices) {
@@ -72,9 +73,9 @@ public class APIFactory {
         return DEFAULT_BOOK_API_SERVICE;
     }
 
-    public static Book getCombinedBook (Map<String,String> requestParams) {
+    public static Book getCombinedBook (Map<String,String> requestParams, Config config) {
         List<Book> books = new ArrayList<>();
-        for (BookAPIService bookAPIService : regAPIServices(requestParams)) {
+        for (BookAPIService bookAPIService : regAPIServices(requestParams, config)) {
             if (bookAPIService.buildBook()) {
                 books.add(bookAPIService.getBook());
             }

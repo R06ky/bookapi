@@ -1,8 +1,10 @@
 package bookapi.web;
 
 import bookapi.Application;
+import bookapi.Config;
 import bookapi.domain.Book;
 import bookapi.service.APIFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -13,15 +15,17 @@ import java.util.Map;
 
 @RestController
 public class BookAPIController {
+    @Autowired
+    Config config;
     @RequestMapping("/book")
     public Book book(@RequestParam Map<String,String> requestParams) {
-        BookAPIService bookAPIService = APIFactory.getService(requestParams);
+        BookAPIService bookAPIService = APIFactory.getService(requestParams, config);
         return bookAPIService.getBook();
     }
 
     @RequestMapping("/cbook")
     public Book cbook(@RequestParam Map<String,String> requestParams) {
-        return APIFactory.getCombinedBook(requestParams);
+        return APIFactory.getCombinedBook(requestParams, config);
     }
 
     @ExceptionHandler(value = Exception.class)

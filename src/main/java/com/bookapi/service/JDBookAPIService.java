@@ -9,6 +9,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -18,7 +19,6 @@ import java.util.Map;
 /**
  * Created by rockyren on 4/1/16.
  */
-@Service
 public class JDBookAPIService extends AbstractAPIService implements BookAPIService {
 
     final static String SEARCH_BY_TITLE = "http://search.jd.com/bookadvsearch?keyword=%s&enc=utf-8";

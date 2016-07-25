@@ -2,6 +2,7 @@ package bookapi.service;
 
 import bookapi.Config;
 import bookapi.domain.Book;
+import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
